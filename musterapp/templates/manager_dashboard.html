@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/manager_dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">
+        <img src="https://www.lorainnovations.com/assets/img/Lora.jpg" alt="LoRa IT Innovations">
+    </div>
+
+    <h1>Manager Dashboard</h1>
+
+    <div class="profile">
+        <i class="fas fa-user profile-icon" onclick="toggleDropdown()"></i>
+        <div class="profile-dropdown" id="profileDropdown">
+            <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+            <p><strong>Employee ID:</strong> {{ user.employee_id }}</p>
+            <!-- <a href="{% url 'logout' %}" class="logout-link">Logout</a> -->
+            <form method="POST" action="{% url 'logout' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="logout-link">Logout</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section: Employee ID and Month Dropdowns -->
+<div class="filter-section">
+    <form method="GET" action="">
+        <label for="employee_id">Filter by Employee ID: </label>
+        <select name="employee_id" id="employee_id" onchange="this.form.submit()">
+            <option value="">-- Select Employee --</option>
+            {% for employee in employees %}
+                <option value="{{ employee.employee_id }}" {% if employee.employee_id == selected_employee_id %} selected {% endif %}>
+                    {{ employee.employee_id }} - {{ employee.first_name }} {{ employee.last_name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="month">Filter by Month: </label>
+        <select name="month" id="month" onchange="this.form.submit()">
+            <option value="">-- Select Month --</option>
+            <option value="1" {% if selected_month == '1' %}selected{% endif %}>January</option>
+            <option value="2" {% if selected_month == '2' %}selected{% endif %}>February</option>
+            <option value="3" {% if selected_month == '3' %}selected{% endif %}>March</option>
+            <option value="4" {% if selected_month == '4' %}selected{% endif %}>April</option>
+            <option value="5" {% if selected_month == '5' %}selected{% endif %}>May</option>
+            <option value="6" {% if selected_month == '6' %}selected{% endif %}>June</option>
+            <option value="7" {% if selected_month == '7' %}selected{% endif %}>July</option>
+            <option value="8" {% if selected_month == '8' %}selected{% endif %}>August</option>
+            <option value="9" {% if selected_month == '9' %}selected{% endif %}>September</option>
+            <option value="10" {% if selected_month == '10' %}selected{% endif %}>October</option>
+            <option value="11" {% if selected_month == '11' %}selected{% endif %}>November</option>
+            <option value="12" {% if selected_month == '12' %}selected{% endif %}>December</option>
+        </select>
+    </form>
+</div>
+
+<!-- Attendance Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>S. No.</th>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Date</th>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if attendances %}
+                {% for record in attendances %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>  
+                        <td>{{ record.employee.employee_id }}</td>
+                        <td>{{ record.employee.first_name }} {{ record.employee.last_name }}</td>
+                        <td>{{ record.date }}</td>
+                        <td>
+                            {% if record.clock_in %}
+                                {{ record.clock_in|date:"F j, Y" }},
+                                {{ record.clock_in|time:"g:i a" }},
+                                {{ record.clock_in_location }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.clock_out %}
+                                {{ record.clock_out|date:"F j, Y" }},
+                                {{ record.clock_out|time:"g:i a" }},
+                                {{ record.clock_out_location }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6">No attendance records found for this filter.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+    function toggleDropdown() {
+        var dropdown = document.getElementById('profileDropdown');
+        dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // Close the dropdown if clicked outside
+    window.onclick = function(event) {
+        if (!event.target.matches('.profile, .profile *')) {
+            var dropdowns = document.getElementsByClassName("profile-dropdown");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

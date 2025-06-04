@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">
+        <img src="https://www.lorainnovations.com/assets/img/Lora.jpg" alt="LoRa IT Innovations">
+    </div>
+    <div class="login-box">
+        <div class="login-form">
+            <h1>Log in</h1>
+            <p>Explore Everything with LoRa</p>
+
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                {{ form.as_p }}
+
+                <div class="password-links">
+                    <a href="{% url 'reset_password' %}" class="reset-password">Reset Password?</a>
+                </div>
+
+                <button type="submit">Log In</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f1f5f4;
+    margin: 0;
+    padding: 0;
+}
+
+/* Header */
+.header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.logo img {
+    height: 40px;
+}
+
+.profile {
+    position: relative;
+}
+
+.profile-icon {
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    color: black;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 5px;
+    width: 200px;
+    z-index: 1000;
+    border-radius: 6px;
+}
+
+.logout-link {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.logout-link:hover {
+    background-color: #d32f2f;
+}
+
+/* Main Container */
+.container {
+    background-color: white;
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-header {
+    margin-bottom: 20px;
+}
+
+.status-section p {
+    font-size: 16px;
+    margin: 10px 0;
+}
+
+/* Clock Buttons */
+.clock-buttons {
+    margin-top: 20px;
+}
+
+.button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.clock-in {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.clock-out {
+    background-color: #f44336;
+    color: white;
+}
+
+.button:hover {
+    opacity: 0.9;
+}
+
+/* Attendance Table Section */
+.attendance-container {
+    max-width: 900px;
+    margin: 20px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.attendance-container h2 {
+    margin-bottom: 15px;
+}
+
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.attendance-table th, .attendance-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.attendance-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.attendance-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.attendance-table tr:hover {
+    background-color: #f1f1f1;
+}

@@ -1,0 +1,179 @@
+{% load tz %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/employee_dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="logo">
+        <img src="https://www.lorainnovations.com/assets/img/Lora.jpg" alt="Logo">
+    </div>
+    <h1>Employee Dashboard</h1>
+    <div class="profile">
+        <i class="fas fa-user profile-icon" onclick="toggleDropdown()"></i>
+        <div class="profile-dropdown" id="profileDropdown">
+            <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+            <p><strong>Employee ID:</strong> {{ user.employee_id }}</p>
+            <form method="POST" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="logout-link">Logout</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard -->
+<div class="container">
+    <div class="dashboard-header">
+        <h1>Welcome, {{ user.first_name }} {{ user.last_name }}</h1>
+    </div>
+
+    <!-- Clock In/Out Status -->
+    <div class="status-section">
+        {% if attendance %}
+            <div class="status">
+                <p><strong>Clock In:</strong> {{ attendance.clock_in|localtime }}</p>
+                <p><strong>Clock Out:</strong>
+                    {% if attendance.clock_out %}
+                        {{ attendance.clock_out|localtime }}
+                    {% else %}
+                        Not clocked out yet
+                    {% endif %}
+                </p>
+            </div>
+        {% else %}
+            <div class="status">
+                <p>No clock-in record for today.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Clock In / Clock Out Buttons -->
+    <div class="clock-buttons">
+        {% if attendance %}
+            {% if not attendance.clock_out %}
+                <form id="clockOutForm" method="post" action="{% url 'clock_out' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="location" id="clockOutLocation">
+                    <button type="submit" class="button clock-out">Clock Out</button>
+                </form>
+            {% endif %}
+        {% else %}
+            <form id="clockInForm" method="post" action="{% url 'clock_in' %}">
+                {% csrf_token %}
+                <input type="hidden" name="location" id="clockInLocation">
+                <button type="submit" class="button clock-in">Clock In</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Separate Attendance Table Section -->
+<div class="attendance-container">
+    <h2>Your Attendance Records</h2>
+    <table class="attendance-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Working Hours</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance_records %}
+            <tr>
+                <td>{{ record.date }}</td>
+                <td>
+                    {{ record.clock_in|date:"F j, Y" }},
+                    {{ record.clock_in|time:"g:i a" }},
+                    {{ record.clock_in_location }}
+                </td>
+                <td>
+                    {% if record.clock_out %}
+                        {{ record.clock_out|date:"F j, Y" }},
+                        {{ record.clock_out|time:"g:i a" }},
+                        {{ record.clock_out_location }}
+                    {% else %}
+                        Not clocked out yet
+                    {% endif %}
+                </td>
+                <td>{{ record.working_hours }} hrs</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function toggleDropdown() {
+        var dropdown = document.getElementById('profileDropdown');
+        dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.closest('.profile')) {
+            var dropdowns = document.getElementsByClassName("profile-dropdown");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].style.display = "none";
+            }
+        }
+    }
+
+    function getLocationAndSubmit(formId, inputId) {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const place = data.address.city || data.address.town || data.address.village || data.address.hamlet || "Unknown";
+                        document.getElementById(inputId).value = place;
+                        document.getElementById(formId).submit();
+                    })
+                    .catch(error => {
+                        console.error("Reverse geocoding failed:", error);
+                        document.getElementById(inputId).value = `${lat}, ${lon}`;
+                        document.getElementById(formId).submit();
+                    });
+
+            }, function () {
+                alert("Location permission denied.");
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+
+    const clockInForm = document.getElementById("clockInForm");
+    if (clockInForm) {
+        clockInForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            getLocationAndSubmit("clockInForm", "clockInLocation");
+        });
+    }
+
+    const clockOutForm = document.getElementById("clockOutForm");
+    if (clockOutForm) {
+        clockOutForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            getLocationAndSubmit("clockOutForm", "clockOutLocation");
+        });
+    }
+</script>
+
+</body>
+</html>
