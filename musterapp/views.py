@@ -10,7 +10,7 @@ from datetime import datetime
 from .models import Attendance, CustomUser
 from .forms import PasswordResetForm
 from django.contrib.auth.hashers import check_password
-
+import requests
 class CustomLoginView(LoginView):
     template_name = 'login.html'
     def form_valid(self, form):
@@ -32,7 +32,6 @@ from django.utils import timezone
 from django.contrib import messages
 from django.shortcuts import redirect
 from .models import Attendance
-
 @login_required
 def clock_in(request):
     if request.user.role != 'Employee':
@@ -45,9 +44,45 @@ def clock_in(request):
         messages.info(request, "You have already clocked in today.")
     else:
         attendance.clock_in = timezone.localtime()
-        attendance.clock_in_location = request.POST.get("location")  # 🧠 Get location from form
+
+        # Get latitude and longitude from POST
+        lat = request.POST.get('latitude')
+        lon = request.POST.get('longitude')
+        location = "Unknown Location"
+
+        if lat and lon:
+            try:
+                # Call Nominatim Reverse Geocoding API
+                response = requests.get(
+                    f"https://nominatim.openstreetmap.org/reverse",
+                    params={
+                        "lat": lat,
+                        "lon": lon,
+                        "format": "json",
+                        "zoom": 18,
+                        "addressdetails": 1
+                    },
+                    headers={"User-Agent": "YourAppName"}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    address = data.get('address', {})
+                    location_parts = [
+                        address.get('road'),
+                        address.get('neighbourhood'),
+                        address.get('suburb'),
+                        address.get('town') or address.get('village') or address.get('city'),
+                        address.get('state'),
+                        address.get('postcode'),
+                        address.get('country')
+                    ]
+                    location = ', '.join([part for part in location_parts if part])
+            except Exception as e:
+                print(f"Location fetch failed: {e}")
+
+        attendance.clock_in_location = location
         attendance.save()
-        messages.success(request, "Clock-in successful!")
+        messages.success(request, f"Clock-in successful! Location: {location}")
 
     return redirect('employee_dashboard')
 
@@ -65,12 +100,46 @@ def clock_out(request):
         messages.error(request, "You have already clocked out today.")
     else:
         attendance.clock_out = timezone.localtime()
-        attendance.clock_out_location = request.POST.get("location")  # 🧠 Get location from form
+
+        # 🌍 Get lat & lon from form
+        lat = request.POST.get('latitude')
+        lon = request.POST.get('longitude')
+        location = "Unknown Location"
+
+        if lat and lon:
+            try:
+                response = requests.get(
+                    "https://nominatim.openstreetmap.org/reverse",
+                    params={
+                        "lat": lat,
+                        "lon": lon,
+                        "format": "json",
+                        "zoom": 18,
+                        "addressdetails": 1
+                    },
+                    headers={"User-Agent": "YourAppName"}  # Replace with a unique name
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    address = data.get("address", {})
+                    location_parts = [
+                        address.get("road"),
+                        address.get("neighbourhood"),
+                        address.get("suburb"),
+                        address.get("town") or address.get("village") or address.get("city"),
+                        address.get("state"),
+                        address.get("postcode"),
+                        address.get("country"),
+                    ]
+                    location = ", ".join([part for part in location_parts if part])
+            except Exception as e:
+                print(f"Clock-out location error: {e}")
+
+        attendance.clock_out_location = location
         attendance.save()
-        messages.success(request, "Clock-out successful!")
+        messages.success(request, f"Clock-out successful! Location: {location}")
 
-    return redirect('employee_dashboard')
-
+    return redirect("employee_dashboard")
 @login_required
 def employee_dashboard(request):
     if request.user.role != 'Employee':
@@ -86,26 +155,37 @@ def employee_dashboard(request):
     })
 
 
+from django.db.models import Max
+from .models import Attendance
+
 @login_required
 def manager_dashboard(request):
     if request.user.role != 'Manager':
         raise PermissionDenied
 
     employees = get_user_model().objects.filter(role='Employee')
-    selected_employee_id = request.GET.get('employee_id', None)
-    selected_month = request.GET.get('month', None)
-
+    selected_employee_id = request.GET.get('employee_id')
+    selected_month = request.GET.get('month')
     if selected_employee_id and selected_month:
-        attendances = Attendance.objects.filter(
-            employee__employee_id=selected_employee_id,
-            date__month=selected_month
-        )
+        attendances = Attendance.objects.filter(employee__employee_id=selected_employee_id,date__month=selected_month).order_by('-date', '-clock_in')
+
     elif selected_employee_id:
-        attendances = Attendance.objects.filter(employee__employee_id=selected_employee_id)
+        attendances = Attendance.objects.filter(employee__employee_id=selected_employee_id).order_by('-date', '-clock_in')
+
     elif selected_month:
-        attendances = Attendance.objects.filter(date__month=selected_month)
+        attendances = Attendance.objects.filter(date__month=selected_month).order_by('-date', '-clock_in')
+
     else:
-        attendances = Attendance.objects.all()
+        all_qs = Attendance.objects.all()
+        latest_per_employee = all_qs.values('employee').annotate(latest_date=Max('date'))
+
+        attendances = []
+        for entry in latest_per_employee:
+            emp_id = entry['employee']
+            date = entry['latest_date']
+            record = all_qs.filter(employee_id=emp_id, date=date).order_by('-date', '-clock_in').first()
+            if record:
+                attendances.append(record)
 
     return render(request, 'manager_dashboard.html', {
         'attendances': attendances,
@@ -113,8 +193,6 @@ def manager_dashboard(request):
         'selected_employee_id': selected_employee_id,
         'selected_month': selected_month,
     })
-
-
 def reset_password(request):
     if request.method == "POST":
         form = PasswordResetForm(request.POST)
