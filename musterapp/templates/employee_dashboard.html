@@ -75,7 +75,7 @@
     </div>
 </div>
 
-<!-- Separate Attendance Table Section -->
+<!-- Attendance Records Table -->
 <div class="attendance-container">
     <h2>Your Attendance Records</h2>
     <table class="attendance-table">
@@ -93,14 +93,12 @@
                 <td>{{ record.date }}</td>
                 <td>
                     {{ record.clock_in|date:"F j, Y" }},
-                    {{ record.clock_in|time:"g:i a" }},
-                    {{ record.clock_in_location }}
+                    {{ record.clock_in|time:"g:i a" }}
                 </td>
                 <td>
                     {% if record.clock_out %}
                         {{ record.clock_out|date:"F j, Y" }},
-                        {{ record.clock_out|time:"g:i a" }},
-                        {{ record.clock_out_location }}
+                        {{ record.clock_out|time:"g:i a" }}
                     {% else %}
                         Not clocked out yet
                     {% endif %}
@@ -116,6 +114,7 @@
     </table>
 </div>
 
+<!-- JS for Profile Dropdown and Location -->
 <script>
     function toggleDropdown() {
         var dropdown = document.getElementById('profileDropdown');
@@ -137,11 +136,15 @@
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
 
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
                     .then(response => response.json())
                     .then(data => {
-                        const place = data.address.city || data.address.town || data.address.village || data.address.hamlet || "Unknown";
-                        document.getElementById(inputId).value = place;
+                        const address = data.address;
+                        const road = address.road || '';
+                        const town = address.town || address.village || address.city || '';
+                        const state = address.state || '';
+                        const location = `${road}, ${town}, ${state}`;
+                        document.getElementById(inputId).value = location.trim();
                         document.getElementById(formId).submit();
                     })
                     .catch(error => {
