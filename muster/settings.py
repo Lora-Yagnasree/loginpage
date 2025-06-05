@@ -98,10 +98,7 @@ WSGI_APPLICATION = 'muster.wsgi.application'
 #         'PORT': config('DB_PORT', default=5432, cast=int),
 #     }
 # }
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
