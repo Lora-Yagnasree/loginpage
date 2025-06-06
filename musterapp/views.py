@@ -209,10 +209,4 @@ def update_profile_photo(request):
         request.user.save()
     return redirect('employee_dashboard')  # or wherever your dashboard is
 
-@login_required
-def update_profile_photo(request):
-    if request.method == 'POST' and request.FILES.get('profile_photo'):
-        request.user.profile_photo = request.FILES['profile_photo']
-        request.user.save()
-    return redirect('manager_dashboard')
 
