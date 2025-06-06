@@ -7,20 +7,20 @@ from .models import CustomUser, Attendance
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
-    list_display = ('employee_id', 'employee_id', 'email', 'role', 'first_name', 'last_name', 'is_active', 'is_staff', 'date_joined')
+    list_display = ( 'employee_id', 'email', 'role', 'first_name', 'last_name','phone_number','department', 'profile_photo','is_active', 'is_staff', 'date_joined')
     list_filter = ('is_active', 'is_staff', 'role')
     search_fields = ('employee_id', 'email', 'first_name', 'last_name')
     ordering = ('employee_id',)
     fieldsets = (
         (None, {'fields': ('employee_id', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'role',)}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email','phone_number','department','profile_photo', 'role',)}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('employee_id', 'first_name', 'last_name', 'email', 'password1', 'password2', 'role'),
+            'fields': ('employee_id', 'first_name', 'last_name', 'email', 'password1', 'password2','profile_photo','role'),
         }),
     )
     filter_horizontal = ('groups', 'user_permissions',)
