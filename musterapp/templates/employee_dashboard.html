@@ -7,72 +7,7 @@
     <title>Employee Dashboard</title>
     <link rel="stylesheet" href="{% static 'css/employee_dashboard.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 10;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.6);
-        }
 
-        .modal-content {
-            background-color: #fff;
-            margin: 10% auto;
-            padding: 20px;
-            width: 50%;
-            border-radius: 10px;
-            position: relative;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-
-        .close {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .modal-content p {
-            margin: 10px 0;
-            font-size: 16px;
-        }
-
-        .profile-photo {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
-            border: 2px solid #ccc;
-            transition: 0.3s ease;
-        }
-
-        .profile-photo:hover {
-            border-color: #666;
-        }
-
-        .modal-profile-photo {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #444;
-        }
-
-        .logout-link {
-            background: none;
-            border: none;
-            color: #f00;
-            cursor: pointer;
-            margin-left: 15px;
-        }
-    </style>
 </head>
 <body>
 

@@ -215,4 +215,3 @@ def update_profile_photo(request):
         request.user.profile_photo = request.FILES['profile_photo']
         request.user.save()
     return redirect('manager_dashboard')
-
