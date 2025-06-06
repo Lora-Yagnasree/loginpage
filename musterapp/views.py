@@ -6,15 +6,19 @@ from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from datetime import datetime
+from django.utils.safestring import mark_safe  # for safe HTML in location links
 from .models import Attendance, CustomUser
 from .forms import PasswordResetForm
 from django.contrib.auth.hashers import check_password
 
 class CustomLoginView(LoginView):
     template_name = 'login.html'
+    
     def form_valid(self, form):
-        user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
+        user = authenticate(
+            username=form.cleaned_data['username'],
+            password=form.cleaned_data['password']
+        )
         login(self.request, user)
 
         if user.role == 'Employee':
@@ -23,15 +27,7 @@ class CustomLoginView(LoginView):
             return redirect('manager_dashboard')
         elif user.role == 'HR':
             return redirect('hr_dashboard')
-        else:
-            return redirect('home')
-
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.utils import timezone
-from django.contrib import messages
-from django.shortcuts import redirect
-from .models import Attendance
+        return redirect('home')
 
 @login_required
 def clock_in(request):
@@ -39,15 +35,26 @@ def clock_in(request):
         raise PermissionDenied
 
     today = timezone.localdate()
-    attendance, created = Attendance.objects.get_or_create(employee=request.user, date=today)
+    attendance, created = Attendance.objects.get_or_create(
+        employee=request.user, 
+        date=today
+    )
 
     if attendance.clock_in:
         messages.info(request, "You have already clocked in today.")
     else:
         attendance.clock_in = timezone.localtime()
-        attendance.clock_in_location = request.POST.get("location")  # 🧠 Get location from form
+        
+        lat = request.POST.get('latitude')
+        lon = request.POST.get('longitude')
+        
+        if lat and lon:
+            attendance.clock_in_location = f"{lat},{lon}"
+        else:
+            attendance.clock_in_location = "0,0"
+        
         attendance.save()
-        messages.success(request, "Clock-in successful!")
+        messages.success(request, "Clock-in successful with coordinates")
 
     return redirect('employee_dashboard')
 
@@ -57,7 +64,10 @@ def clock_out(request):
         raise PermissionDenied
 
     today = timezone.localdate()
-    attendance = Attendance.objects.filter(employee=request.user, date=today).first()
+    attendance = Attendance.objects.filter(
+        employee=request.user, 
+        date=today
+    ).first()
 
     if not attendance:
         messages.error(request, "You need to clock in first.")
@@ -65,9 +75,17 @@ def clock_out(request):
         messages.error(request, "You have already clocked out today.")
     else:
         attendance.clock_out = timezone.localtime()
-        attendance.clock_out_location = request.POST.get("location")  # 🧠 Get location from form
+        
+        lat = request.POST.get('latitude')
+        lon = request.POST.get('longitude')
+        
+        if lat and lon:
+            attendance.clock_out_location = f"{lat},{lon}"
+        else:
+            attendance.clock_out_location = "0,0"
+        
         attendance.save()
-        messages.success(request, "Clock-out successful!")
+        messages.success(request, "Clock-out successful with coordinates")
 
     return redirect('employee_dashboard')
 
@@ -77,14 +95,19 @@ def employee_dashboard(request):
         raise PermissionDenied
 
     today = timezone.localdate()
-    today_attendance = Attendance.objects.filter(employee=request.user, date=today).first()
-    past_records = Attendance.objects.filter(employee=request.user).order_by('-date')
+    today_attendance = Attendance.objects.filter(
+        employee=request.user, 
+        date=today
+    ).first()
+    
+    past_records = Attendance.objects.filter(
+        employee=request.user
+    ).order_by('-date')
 
     return render(request, 'employee_dashboard.html', {
         'attendance': today_attendance,
         'attendance_records': past_records,
     })
-
 
 @login_required
 def manager_dashboard(request):
@@ -92,20 +115,57 @@ def manager_dashboard(request):
         raise PermissionDenied
 
     employees = get_user_model().objects.filter(role='Employee')
-    selected_employee_id = request.GET.get('employee_id', None)
-    selected_month = request.GET.get('month', None)
+    selected_employee_id = request.GET.get('employee_id')
+    selected_month = request.GET.get('month')
+    
+    attendances = Attendance.objects.all().order_by('-date', '-clock_in')
 
-    if selected_employee_id and selected_month:
-        attendances = Attendance.objects.filter(
-            employee__employee_id=selected_employee_id,
-            date__month=selected_month
-        )
-    elif selected_employee_id:
-        attendances = Attendance.objects.filter(employee__employee_id=selected_employee_id)
-    elif selected_month:
-        attendances = Attendance.objects.filter(date__month=selected_month)
-    else:
-        attendances = Attendance.objects.all()
+    if selected_employee_id:
+        attendances = attendances.filter(employee__employee_id=selected_employee_id)
+    if selected_month:
+        attendances = attendances.filter(date__month=selected_month)
+
+    # Keep only the latest attendance per employee (based on date and clock_in time)
+    latest_attendance_per_employee = {}
+    for att in attendances:
+        emp_id = att.employee.employee_id
+        # If employee not already in dict, add this attendance as latest
+        if emp_id not in latest_attendance_per_employee:
+            latest_attendance_per_employee[emp_id] = att
+
+    attendances = latest_attendance_per_employee.values()
+
+    # Convert clock in/out locations to clickable map icons as before
+    for attendance in attendances:
+        # Clock in location
+        if attendance.clock_in_location and attendance.clock_in_location != "0,0":
+            parts = attendance.clock_in_location.split(',')
+            if len(parts) >= 2:
+                lat = parts[0].strip()
+                lon = parts[1].strip()
+                attendance.clock_in_location = mark_safe(
+                    f'<a href="https://www.google.com/maps?q={lat},{lon}" target="_blank" title="View Location">'
+                    f'<i class="fas fa-map-marker-alt" style="color:red;"></i></a>'
+                )
+            else:
+                attendance.clock_in_location = ""
+        else:
+            attendance.clock_in_location = ""
+
+        # Clock out location
+        if attendance.clock_out_location and attendance.clock_out_location != "0,0":
+            parts = attendance.clock_out_location.split(',')
+            if len(parts) >= 2:
+                lat = parts[0].strip()
+                lon = parts[1].strip()
+                attendance.clock_out_location = mark_safe(
+                    f'<a href="https://www.google.com/maps?q={lat},{lon}" target="_blank" title="View Location">'
+                    f'<i class="fas fa-map-marker-alt" style="color:green;"></i></a>'
+                )
+            else:
+                attendance.clock_out_location = ""
+        else:
+            attendance.clock_out_location = ""
 
     return render(request, 'manager_dashboard.html', {
         'attendances': attendances,
@@ -113,7 +173,6 @@ def manager_dashboard(request):
         'selected_employee_id': selected_employee_id,
         'selected_month': selected_month,
     })
-
 
 def reset_password(request):
     if request.method == "POST":
@@ -138,3 +197,22 @@ def reset_password(request):
         form = PasswordResetForm()
 
     return render(request, "reset_password.html", {"form": form})
+
+
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def update_profile_photo(request):
+    if request.method == 'POST' and request.FILES.get('profile_photo'):
+        request.user.profile_photo = request.FILES['profile_photo']
+        request.user.save()
+    return redirect('employee_dashboard')  # or wherever your dashboard is
+
+@login_required
+def update_profile_photo(request):
+    if request.method == 'POST' and request.FILES.get('profile_photo'):
+        request.user.profile_photo = request.FILES['profile_photo']
+        request.user.save()
+    return redirect('manager_dashboard')
+

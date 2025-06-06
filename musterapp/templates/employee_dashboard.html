@@ -7,6 +7,72 @@
     <title>Employee Dashboard</title>
     <link rel="stylesheet" href="{% static 'css/employee_dashboard.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            width: 50%;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-content p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .profile-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid #ccc;
+            transition: 0.3s ease;
+        }
+
+        .profile-photo:hover {
+            border-color: #666;
+        }
+
+        .modal-profile-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #444;
+        }
+
+        .logout-link {
+            background: none;
+            border: none;
+            color: #f00;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+    </style>
 </head>
 <body>
 
@@ -17,15 +83,14 @@
     </div>
     <h1>Employee Dashboard</h1>
     <div class="profile">
-        <i class="fas fa-user profile-icon" onclick="toggleDropdown()"></i>
-        <div class="profile-dropdown" id="profileDropdown">
-            <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
-            <p><strong>Employee ID:</strong> {{ user.employee_id }}</p>
-            <form method="POST" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="logout-link">Logout</button>
-            </form>
-        </div>
+        {% if user.profile_photo %}
+            <img src="{{ user.profile_photo.url }}" alt="Profile Photo" class="profile-photo" onclick="toggleProfileModal()">
+
+        {% else %}
+            <img src="{% static 'images/default-user.png' %}" alt="Default Profile" class="profile-photo" onclick="toggleProfileModal()">
+        {% endif %}
+        
+        </form>
     </div>
 </div>
 
@@ -75,7 +140,7 @@
     </div>
 </div>
 
-<!-- Attendance Records Table -->
+<!-- Attendance Table Section -->
 <div class="attendance-container">
     <h2>Your Attendance Records</h2>
     <table class="attendance-table">
@@ -91,14 +156,10 @@
             {% for record in attendance_records %}
             <tr>
                 <td>{{ record.date }}</td>
-                <td>
-                    {{ record.clock_in|date:"F j, Y" }},
-                    {{ record.clock_in|time:"g:i a" }}
-                </td>
+                <td>{{ record.clock_in|date:"F j, Y" }}, {{ record.clock_in|time:"g:i a" }}</td>
                 <td>
                     {% if record.clock_out %}
-                        {{ record.clock_out|date:"F j, Y" }},
-                        {{ record.clock_out|time:"g:i a" }}
+                        {{ record.clock_out|date:"F j, Y" }}, {{ record.clock_out|time:"g:i a" }}
                     {% else %}
                         Not clocked out yet
                     {% endif %}
@@ -114,68 +175,106 @@
     </table>
 </div>
 
-<!-- JS for Profile Dropdown and Location -->
+<!-- Modal for Employee Profile -->
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeProfileModal()">&times;</span>
+        <h2>Employee Profile</h2>
+
+        <div style="text-align: center;">
+    {% if user.profile_photo %}
+        <img src="{{ user.profile_photo.url }}" alt="Profile Photo" class="modal-profile-photo" style="width: 100px; height: 100px; border-radius: 50%;">
+    {% else %}
+        <img src="{% static 'images/default-user.png' %}" alt="Default Profile" class="modal-profile-photo" style="width: 100px; height: 100px; border-radius: 50%;">
+    {% endif %}
+
+    <form id="photoForm" method="post" action="{% url 'update_profile_photo' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="profile_photo" id="photoInput" accept="image/*" style="display: none;" onchange="document.getElementById('photoForm').submit();">
+        <button type="button" class="button" onclick="document.getElementById('photoInput').click();">Update Photo</button>
+    </form>
+</div>
+
+
+        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+        <p><strong>Employee ID:</strong> {{ user.employee_id }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Phone:</strong> {{ user.phone_number }}</p>
+        <p><strong>Department:</strong> {{ user.department }}</p>
+        <p><strong>Role:</strong> {{ user.role }}</p>
+        <p><strong>Joining Date:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+        <form method="POST" action="{% url 'logout' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="logout-link">Logout</button>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script>
-    function toggleDropdown() {
-        var dropdown = document.getElementById('profileDropdown');
-        dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
+    function toggleProfileModal() {
+        document.getElementById('profileModal').style.display = 'block';
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profileModal').style.display = 'none';
     }
 
     window.onclick = function(event) {
-        if (!event.target.closest('.profile')) {
-            var dropdowns = document.getElementsByClassName("profile-dropdown");
-            for (var i = 0; i < dropdowns.length; i++) {
-                dropdowns[i].style.display = "none";
-            }
+        const modal = document.getElementById('profileModal');
+        if (event.target === modal) {
+            modal.style.display = "none";
         }
+    };
+
+   function getLocationAndSubmit(formId) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const form = document.getElementById(formId);
+                
+                // Create hidden inputs for lat/long
+                const latInput = document.createElement('input');
+                latInput.type = 'hidden';
+                latInput.name = 'latitude';
+                latInput.value = position.coords.latitude;
+                
+                const longInput = document.createElement('input');
+                longInput.type = 'hidden';
+                longInput.name = 'longitude';
+                longInput.value = position.coords.longitude;
+                
+                form.appendChild(latInput);
+                form.appendChild(longInput);
+                form.submit();
+            },
+            function(error) {
+                alert("Error getting location: " + error.message);
+                document.getElementById(formId).submit();
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    } else {
+        alert("Geolocation is not supported by this browser.");
+        document.getElementById(formId).submit();
     }
+}
 
-    function getLocationAndSubmit(formId, inputId) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
+// Update your form event listeners
+const clockInForm = document.getElementById("clockInForm");
+if (clockInForm) {
+    clockInForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        getLocationAndSubmit("clockInForm");
+    });
+}
 
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const address = data.address;
-                        const road = address.road || '';
-                        const town = address.town || address.village || address.city || '';
-                        const state = address.state || '';
-                        const location = `${road}, ${town}, ${state}`;
-                        document.getElementById(inputId).value = location.trim();
-                        document.getElementById(formId).submit();
-                    })
-                    .catch(error => {
-                        console.error("Reverse geocoding failed:", error);
-                        document.getElementById(inputId).value = `${lat}, ${lon}`;
-                        document.getElementById(formId).submit();
-                    });
-
-            }, function () {
-                alert("Location permission denied.");
-            });
-        } else {
-            alert("Geolocation is not supported by this browser.");
-        }
-    }
-
-    const clockInForm = document.getElementById("clockInForm");
-    if (clockInForm) {
-        clockInForm.addEventListener("submit", function (e) {
-            e.preventDefault();
-            getLocationAndSubmit("clockInForm", "clockInLocation");
-        });
-    }
-
-    const clockOutForm = document.getElementById("clockOutForm");
-    if (clockOutForm) {
-        clockOutForm.addEventListener("submit", function (e) {
-            e.preventDefault();
-            getLocationAndSubmit("clockOutForm", "clockOutLocation");
-        });
-    }
+const clockOutForm = document.getElementById("clockOutForm");
+if (clockOutForm) {
+    clockOutForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        getLocationAndSubmit("clockOutForm");
+    });
+}
 </script>
 
 </body>

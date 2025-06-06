@@ -14,6 +14,10 @@ class CustomUser(AbstractUser):
     role = models.CharField(choices=ROLE_TYPE, max_length=100)
     employee_id = models.CharField(max_length=100, unique=True)
     email = models.EmailField(max_length=254, unique=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    department = models.CharField(max_length=100, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
+
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
