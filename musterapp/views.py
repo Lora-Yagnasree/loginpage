@@ -215,3 +215,48 @@ def update_profile_photo(request):
         request.user.profile_photo = request.FILES['profile_photo']
         request.user.save()
     return redirect('manager_dashboard')
+
+
+
+from django.http import HttpResponse
+from openpyxl import Workbook
+from .models import Attendance
+
+def export_attendance_excel(request):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Attendance Records"
+
+    # Headers
+    sheet.append([
+        'Employee ID', 'Email', 'Role', 'Department',
+        'Clock In', 'Clock In Location',
+        'Clock Out', 'Clock Out Location',
+        'Working Hours', 'Date'
+    ])
+
+    # Data
+    attendances = Attendance.objects.select_related('employee').all().order_by('-date')
+
+    for record in attendances:
+        sheet.append([
+            record.employee.employee_id,
+            record.employee.email,
+            record.employee.role,
+            record.employee.department,
+            record.clock_in.strftime("%Y-%m-%d %H:%M:%S") if record.clock_in else '',
+            record.clock_in_location or '',
+            record.clock_out.strftime("%Y-%m-%d %H:%M:%S") if record.clock_out else '',
+            record.clock_out_location or '',
+            record.working_hours() or '',
+            record.date.strftime("%Y-%m-%d")
+        ])
+
+    # Prepare Excel file response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename=attendance_report.xlsx'
+    workbook.save(response)
+    return response
+
