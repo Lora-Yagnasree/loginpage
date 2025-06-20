@@ -259,4 +259,31 @@ def export_attendance_excel(request):
     response['Content-Disposition'] = 'attachment; filename=attendance_report.xlsx'
     workbook.save(response)
     return response
+def export_record_excel(request):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Employee Records"
+
+    # Headers
+    sheet.append([ 'Date','Clock In','Clock Out','Working Hours'])
+
+    # Data
+    attendances = Attendance.objects.select_related('employee').all().order_by('-date')
+
+    for record in attendances:
+        sheet.append([
+            record.clock_in.strftime("%Y-%m-%d %H:%M:%S") if record.clock_in else '',
+            record.clock_out.strftime("%Y-%m-%d %H:%M:%S") if record.clock_out else '',
+            record.working_hours() or '',
+            record.date.strftime("%Y-%m-%d")
+        ])
+
+    # Prepare Excel file response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename=attendance_report.xlsx'
+    workbook.save(response)
+    return response
+
 

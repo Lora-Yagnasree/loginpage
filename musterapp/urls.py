@@ -14,7 +14,9 @@ urlpatterns = [
     path('reset_password/', views.reset_password, name='reset_password'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('update-profile-photo/', views.update_profile_photo, name='update_profile_photo'),
-    path('export/attendance/', views.export_attendance_excel, name='export_attendance_excel')
+    path('export/attendance/', views.export_attendance_excel, name='export_attendance_excel'),
+    path('export/employee attendance/', views.export_record_excel, name='export_record_excel')
+
 
 
 
